@@ -3,9 +3,34 @@ open Common
 
 let store_table = Hashtbl.create 100
 
+let rec inflate s fetch =
+  let pattern = Str.regexp "{{\\([^}]+\\)}}" in
+  let rec find_matches pos acc =
+    try
+      let _ = Str.search_forward pattern s pos in
+      let identifier = Str.matched_group 1 s in
+      let acc' = match fetch identifier with
+          Some value -> ("{{" ^ identifier ^ "}}", inflate value fetch) :: acc
+        | None -> acc in
+      find_matches (Str.match_end()) acc'
+    with Not_found ->
+      List.rev acc
+  in
+  let values = find_matches 0 [] in
+  let rec replace_all s values =
+    match values with
+      (pat, value) :: values' ->
+       replace_all (Str.global_replace (Str.regexp pat) value s) values'
+    | [] -> s
+  in replace_all s values
+
 module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
-  let get key = Hashtbl.find_opt store_table key
+  let get key =
+    let raw = Hashtbl.find_opt store_table key in
+    match raw with
+      Some raw_value -> Some (inflate raw_value (Hashtbl.find_opt store_table))
+    | None -> None
   let set key value = Hashtbl.replace store_table key value
   let list () = Hashtbl.fold (fun k _ acc -> k :: acc) store_table []
 end

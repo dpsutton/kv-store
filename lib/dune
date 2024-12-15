@@ -1,4 +1,4 @@
 (library
  (name kv)
- (libraries unix)
+ (libraries unix str)
  (modules common client server))
