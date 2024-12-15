@@ -1,10 +1,14 @@
 (* bin/client.ml - Client executable *)
-let usage = "Usage: client [get <key> | set <key> <value> | list]"
+let usage = "Usage: client [get <key> | set <key> <value> | expand <phrase> | list]"
 
 let () =
   match Array.to_list Sys.argv with
   | [_; "get"; key] ->
       (match Kv.Client.get_value key with
+      | Ok value -> print_endline value
+      | Error msg -> prerr_endline msg; exit 1)
+  | [_; "expand"; phrase] ->
+     (match Kv.Client.interpolate phrase with
       | Ok value -> print_endline value
       | Error msg -> prerr_endline msg; exit 1)
   | [_; "set"; key; value] ->

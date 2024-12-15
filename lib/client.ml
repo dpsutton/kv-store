@@ -27,6 +27,10 @@ let get_value ?host ?(port=default_port) key =
   let socket = connect ?host ~port () in
   send_request socket (Get key)
 
+let interpolate ?host ?(port=default_port) phrase =
+  let socket = connect ?host ~port () in
+  send_request socket (Expand phrase)
+
 let set_value ?host ?(port=default_port) key value =
   let socket = connect ?host ~port () in
   send_request socket (Set (key, value))

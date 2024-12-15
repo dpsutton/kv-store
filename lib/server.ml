@@ -21,6 +21,19 @@ let rec inflate s fetch =
     with Not_found -> s
   in replace 0 s
 
+let to_braces s =
+  let pattern = (Str.regexp "~\\([a-zA-Z][a-zA-Z0-9_-]*\\)") in
+  let rec replace index =
+    try
+      let _ = Str.search_forward pattern s index in
+      let var = Str.matched_group 1 s in
+      let this = String.sub s index (Str.match_beginning() - index) in
+      let after = replace (Str.match_end()) in
+      this ^ "{{" ^ var ^ "}}" ^ after
+    with Not_found ->
+      String.sub s index (String.length s - index)
+  in replace 0
+
 module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
   let get key =
@@ -28,6 +41,7 @@ module Store = struct
     match raw with
       Some raw_value -> Some (inflate raw_value (Hashtbl.find_opt store_table))
     | None -> None
+  let interpolate s = inflate (to_braces s) (Hashtbl.find_opt store_table)
   let set key value = Hashtbl.replace store_table key value
   let list () = Hashtbl.fold (fun k _ acc -> k :: acc) store_table []
 end
@@ -56,6 +70,7 @@ let start_server ?(port=default_port) initial_values =
             (match Store.get key with
             | Some value -> Value value
             | None -> NotFound)
+        | Expand phrase -> Value (Store.interpolate phrase)
         | Set (key, value) ->
             Store.set key value;
             Printf.printf "Stored: %s = %s\n%!" key value;

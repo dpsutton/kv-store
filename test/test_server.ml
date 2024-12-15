@@ -15,9 +15,12 @@ let test_expansion _ =
   assert_equal (Kv.Server.inflate "expand {{COMPLEX}}" fetch) "expand b and c";
   assert_equal (Kv.Server.inflate "expand {{not-found}}" fetch) "expand {{not-found}}"
 
+let test_to_interpolation _ =
+  assert_equal (Kv.Server.to_braces "~expand ~vars") "{{expand}} {{vars}}"
 
 let expansion_tests = "expansion_tests" >::: [
-  "simple" >:: test_expansion;
+      "simple" >:: test_expansion;
+      "expansion" >:: test_to_interpolation
     ]
 
 let () = run_test_tt_main expansion_tests

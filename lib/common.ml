@@ -4,6 +4,7 @@ let default_port = 6060
 type request =
   | Get of string
   | Set of string * string
+  | Expand of string
   | List
   | Quit
 
