@@ -1,25 +1,34 @@
 (* lib/server.ml *)
 open Common
+module StringSet = Set.Make(String)
 
 let store_table = Hashtbl.create 100
 
 (* Walk through strings looking for {{identifier}}, `fetch`s it,
    inflates it, and carries on. *)
-let rec inflate s fetch =
+
+let rec inflate s fetch seen =
   let pattern = Str.regexp "{{\\([^}]+\\)}}" in
-  let rec replace index s =
+  let rec replace index s seen =
     try
       let _ = Str.search_forward pattern s index in
       let identifier = Str.matched_group 1 s in
-      let (index', s') = match fetch identifier with
-          Some value ->
-           let usage = Str.regexp ("{{" ^ identifier ^ "}}") in
-           (index, Str.global_replace usage (inflate value fetch) s)
-        (* if there's no replacement, just advance and leave it as a literal *)
-        | None -> (Str.match_end (), s)
-      in replace index' s'
+      if (StringSet.mem identifier seen)
+      then
+        (* Just skip this identifier if we've seen it before *)
+        replace (Str.match_end()) s seen
+      else
+        let seen' = StringSet.add identifier seen in
+        let (index', s') = match fetch identifier with
+            Some value ->
+             let usage = Str.regexp ("{{" ^ identifier ^ "}}") in
+             let fully_inflated = (inflate value fetch seen') in
+             let replaced_str = Str.global_replace usage fully_inflated s in
+             (index, replaced_str)  (* Note: Use original index to recheck from start *)
+          | None -> (Str.match_end (), s)
+        in replace index' s' seen'
     with Not_found -> s
-  in replace 0 s
+  in replace 0 s seen
 
 let to_braces s =
   let pattern = (Str.regexp "~\\([a-zA-Z][a-zA-Z0-9_-]*\\)") in
@@ -39,9 +48,9 @@ module Store = struct
   let get key =
     let raw = Hashtbl.find_opt store_table key in
     match raw with
-      Some raw_value -> Some (inflate raw_value (Hashtbl.find_opt store_table))
+      Some raw_value -> Some (inflate raw_value (Hashtbl.find_opt store_table) (StringSet.add key StringSet.empty))
     | None -> None
-  let interpolate s = inflate (to_braces s) (Hashtbl.find_opt store_table)
+  let interpolate s = inflate (to_braces s) (Hashtbl.find_opt store_table) StringSet.empty
   let set key value = Hashtbl.replace store_table key value
   let list () = Hashtbl.fold (fun k _ acc -> k :: acc) store_table []
 end
