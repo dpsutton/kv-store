@@ -7,18 +7,19 @@ let store_table = Hashtbl.create 100
    inflates it, and carries on. *)
 let rec inflate s fetch =
   let pattern = Str.regexp "{{\\([^}]+\\)}}" in
-  let rec replace s =
+  let rec replace index s =
     try
-      let _ = Str.search_forward pattern s 0 in
+      let _ = Str.search_forward pattern s index in
       let identifier = Str.matched_group 1 s in
-      let s' = match fetch identifier with
+      let (index', s') = match fetch identifier with
           Some value ->
            let usage = Str.regexp ("{{" ^ identifier ^ "}}") in
-           Str.global_replace usage (inflate value fetch) s
-        | None -> s
-      in replace s'
+           (index, Str.global_replace usage (inflate value fetch) s)
+        (* if there's no replacement, just advance and leave it as a literal *)
+        | None -> (Str.match_end (), s)
+      in replace index' s'
     with Not_found -> s
-  in replace s
+  in replace 0 s
 
 module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
