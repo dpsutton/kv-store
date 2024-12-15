@@ -3,26 +3,22 @@ open Common
 
 let store_table = Hashtbl.create 100
 
+(* Walk through strings looking for {{identifier}}, `fetch`s it,
+   inflates it, and carries on. *)
 let rec inflate s fetch =
   let pattern = Str.regexp "{{\\([^}]+\\)}}" in
-  let rec find_matches pos acc =
+  let rec replace s =
     try
-      let _ = Str.search_forward pattern s pos in
+      let _ = Str.search_forward pattern s 0 in
       let identifier = Str.matched_group 1 s in
-      let acc' = match fetch identifier with
-          Some value -> ("{{" ^ identifier ^ "}}", inflate value fetch) :: acc
-        | None -> acc in
-      find_matches (Str.match_end()) acc'
-    with Not_found ->
-      List.rev acc
-  in
-  let values = find_matches 0 [] in
-  let rec replace_all s values =
-    match values with
-      (pat, value) :: values' ->
-       replace_all (Str.global_replace (Str.regexp pat) value s) values'
-    | [] -> s
-  in replace_all s values
+      let s' = match fetch identifier with
+          Some value ->
+           let usage = Str.regexp ("{{" ^ identifier ^ "}}") in
+           Str.global_replace usage (inflate value fetch) s
+        | None -> s
+      in replace s'
+    with Not_found -> s
+  in replace s
 
 module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
