@@ -56,7 +56,9 @@ todo:
 - [ ] shorter commands to get? alias? `alias g="kv-client get"` and `echo "$(g db-arg)=$(g pg-prefix)clean $(g token-arg)=$(g ee)"`
 - [x] add a way to keep looking up token={{token-arg}}={{ee}} expands the token-arg and ee
 - [x] handle spaces, etc in seed data. `quick=this is stuff` should work.
-- [x] ability to reload init file. editing text.data with other k/v's and then get it to reload without dumping the whole other k/v's set in memory
+- [ ] ability to reload init file. editing text.data with other k/v's and then get it to reload without dumping the whole other k/v's set in memory
+- [ ] interpolate a string: `kv interpolate "PORT=~p config_file=~config ..." type interpolation
+
 
 building:
 
