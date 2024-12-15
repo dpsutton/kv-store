@@ -1,0 +1,11 @@
+(executable
+ (public_name kv-server)
+ (name kv_server)
+ (modules kv_server)
+ (libraries kv))
+
+(executable
+ (public_name kv-client)
+ (name kv_client)
+ (modules kv_client)
+ (libraries kv))
