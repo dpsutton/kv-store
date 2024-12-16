@@ -27,11 +27,18 @@ let replace_all s replacements =
   in
   List.fold_left f s replacements
 
+let flip f y x = f x y
+
+(* copied from List.filter and swapped *)
+let rec remove p = function
+  | [] -> []
+  | x :: l -> if p x then remove p l else x :: remove p l
+
 let inflate s fetch =
   let rec inflate_with_seen seen s =
     s
     |> all_matches (Str.regexp "{{\\([^}]+\\)}}")
-    |> List.filter (fun id -> not (StringSet.mem id seen))
+    |> remove (flip StringSet.mem seen)
     |> function
     | [] -> s
     | ids ->
