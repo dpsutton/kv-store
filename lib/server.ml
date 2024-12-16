@@ -17,24 +17,21 @@ let all_matches re s =
   in
   iter s 0 []
 
-type replacement = Replace of string * string | Noop of string
+type replacement = Replace of string * Str.regexp * string | Noop of string
 
 let replace_all s replacements =
-  let rec iter s rs =
-    match rs with
-    | Replace (id, rep) :: rs ->
-        Str.global_replace (Str.regexp ("{{" ^ id ^ "}}")) rep (iter s rs)
-    | Noop _id :: rs -> iter s rs
-    | [] -> s
+  let f s rep =
+    match rep with
+    | Replace (_id, re, rep) -> Str.global_replace re rep s
+    | Noop _ -> s
   in
-  iter s replacements
+  List.fold_left f s replacements
 
 let inflate s fetch =
   let rec inflate_with_seen seen s =
     s
-    |> all_matches (Str.regexp "{{\\([^}]+\\)}}") (* Get all template vars *)
+    |> all_matches (Str.regexp "{{\\([^}]+\\)}}")
     |> List.filter (fun id -> not (StringSet.mem id seen))
-    (* Remove seen *)
     |> function
     | [] -> s
     | ids ->
@@ -44,7 +41,10 @@ let inflate s fetch =
                  fetch id
                  |> Option.map (fun template ->
                         let seen' = StringSet.add id seen in
-                        Replace (id, inflate_with_seen seen' template))
+                        Replace
+                          ( id,
+                            Str.regexp ("{{" ^ id ^ "}}"),
+                            inflate_with_seen seen' template ))
                  |> Option.value ~default:(Noop id))
         in
         replace_all s replacements
@@ -53,16 +53,11 @@ let inflate s fetch =
 
 let to_braces s =
   let pattern = Str.regexp "~\\([a-zA-Z][a-zA-Z0-9_-]*\\)" in
-  let rec replace index =
-    try
-      let _ = Str.search_forward pattern s index in
-      let var = Str.matched_group 1 s in
-      let this = String.sub s index (Str.match_beginning () - index) in
-      let after = replace (Str.match_end ()) in
-      this ^ "{{" ^ var ^ "}}" ^ after
-    with Not_found -> String.sub s index (String.length s - index)
-  in
-  replace 0
+  let matches = all_matches pattern s in
+  replace_all s
+    (List.map
+       (fun m -> Replace (m, Str.regexp ("~" ^ m), "{{" ^ m ^ "}}"))
+       matches)
 
 module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
