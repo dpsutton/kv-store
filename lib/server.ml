@@ -70,8 +70,7 @@ module Store = struct
   let init l = List.iter (fun (k, v) -> Hashtbl.replace store_table k v) l
 
   let get key =
-    let raw = Hashtbl.find_opt store_table key in
-    match raw with
+    match Hashtbl.find_opt store_table key with
     | Some raw_value -> Some (inflate raw_value (Hashtbl.find_opt store_table))
     | None -> None
 
