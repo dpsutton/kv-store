@@ -27,10 +27,16 @@ let test_infinite_expansion _ =
   assert_equal (Kv.Server.inflate "{{A}}" fetch (StringSet.add "A" empty)) "{{A}}";
   assert_equal (Kv.Server.inflate "{{A}}" fetch empty) "expanded {{A}}"
 
+let test_all_matches _ =
+  let re = Str.regexp "{{\\([^}]+\\)}}" in
+  assert_equal (Kv.Server.all_matches "{{a}} {{b}} {{c}}" re) ["a"; "b"; "c"];
+  assert_equal (Kv.Server.all_matches "foo {{db}} bar {{url}}" re) ["db"; "url"]
+
 let expansion_tests = "expansion_tests" >::: [
       "simple" >:: test_expansion;
       "expansion" >:: test_to_interpolation;
-      "no-infinite" >:: test_infinite_expansion
+      "no-infinite" >:: test_infinite_expansion;
+      "all-matches" >:: test_all_matches
     ]
 
 let () = run_test_tt_main expansion_tests

@@ -7,28 +7,42 @@ let store_table = Hashtbl.create 100
 (* Walk through strings looking for {{identifier}}, `fetch`s it,
    inflates it, and carries on. *)
 
-let rec inflate s fetch seen =
-  let pattern = Str.regexp "{{\\([^}]+\\)}}" in
-  let rec replace index s seen =
+let all_matches s re =
+  let rec iter s index acc =
     try
-      let _ = Str.search_forward pattern s index in
+      let _ = Str.search_forward re s index in
       let identifier = Str.matched_group 1 s in
-      if (StringSet.mem identifier seen)
-      then
-        (* Just skip this identifier if we've seen it before *)
-        replace (Str.match_end()) s seen
-      else
-        let seen' = StringSet.add identifier seen in
-        let (index', s') = match fetch identifier with
-            Some value ->
-             let usage = Str.regexp ("{{" ^ identifier ^ "}}") in
-             let fully_inflated = (inflate value fetch seen') in
-             let replaced_str = Str.global_replace usage fully_inflated s in
-             (index, replaced_str)  (* Note: Use original index to recheck from start *)
-          | None -> (Str.match_end (), s)
-        in replace index' s' seen'
-    with Not_found -> s
-  in replace 0 s seen
+      iter s (Str.match_end ()) (identifier :: acc)
+    with Not_found -> List.rev acc
+  in iter s 0 []
+
+type replacement =
+  | Replace of string * string
+  | Noop of string
+
+let replace_all s replacements =
+  let rec iter s rs = match rs with
+      (Replace (id, rep)) :: rs ->
+       Str.global_replace (Str.regexp ("{{" ^ id ^ "}}") ) rep (iter s rs)
+    | (Noop _id) :: rs -> iter s rs
+    | [] -> s
+  in iter s replacements
+
+let rec inflate s fetch seen =
+  let all_matches = List.filter (fun x -> not (StringSet.mem x seen))
+                      (all_matches s (Str.regexp "{{\\([^}]+\\)}}")) in
+  if all_matches = []
+  then
+    s
+  else
+    let replacements =
+      List.map
+        (fun id -> match fetch id with
+                     Some template ->
+                      Replace (id, inflate template fetch (StringSet.add id seen))
+                   | None -> Noop id)
+        all_matches
+    in replace_all s replacements
 
 let to_braces s =
   let pattern = (Str.regexp "~\\([a-zA-Z][a-zA-Z0-9_-]*\\)") in
