@@ -17,12 +17,14 @@ let all_matches re s =
   in
   iter s 0 []
 
-type replacement = Replace of string * Str.regexp * string | Noop of string
+type replacement =
+  | Replace of { id : string; re : Str.regexp; replacement : string }
+  | Noop of string
 
 let replace_all s replacements =
   let f s rep =
     match rep with
-    | Replace (_id, re, rep) -> Str.global_replace re rep s
+    | Replace { re; replacement; _ } -> Str.global_replace re replacement s
     | Noop _ -> s
   in
   List.fold_left f s replacements
@@ -49,9 +51,11 @@ let inflate s fetch =
                  |> Option.map (fun template ->
                         let seen' = StringSet.add id seen in
                         Replace
-                          ( id,
-                            Str.regexp ("{{" ^ id ^ "}}"),
-                            inflate_with_seen seen' template ))
+                          {
+                            id;
+                            re = Str.regexp ("{{" ^ id ^ "}}");
+                            replacement = inflate_with_seen seen' template;
+                          })
                  |> Option.value ~default:(Noop id))
         in
         replace_all s replacements
@@ -63,7 +67,9 @@ let to_braces s =
   let matches = all_matches pattern s in
   replace_all s
     (List.map
-       (fun m -> Replace (m, Str.regexp ("~" ^ m), "{{" ^ m ^ "}}"))
+       (fun m ->
+         Replace
+           { id = m; re = Str.regexp ("~" ^ m); replacement = "{{" ^ m ^ "}}" })
        matches)
 
 module Store = struct
@@ -81,7 +87,7 @@ end
 
 (* add a default arg here for an initial sequence of key value pairs
    from a file and add them with Hashtbl.replace_seq *)
-let start_server ?(port = default_port) initial_values =
+let start_server ?(port = default_port) fetch_values =
   let addr = Unix.inet_addr_loopback in
   let sockaddr = Unix.ADDR_INET (addr, port) in
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -90,7 +96,7 @@ let start_server ?(port = default_port) initial_values =
   Unix.listen socket 5;
   Printf.printf "Server listening on port %d\n%!" port;
 
-  initial_values () |> Store.init;
+  fetch_values () |> Store.init;
   while true do
     let client_sock, _ = Unix.accept socket in
     let ic = Unix.in_channel_of_descr client_sock in
@@ -111,7 +117,7 @@ let start_server ?(port = default_port) initial_values =
             Ok
         | List -> KeyList (Store.list ())
         | Reload ->
-            initial_values () |> Store.init;
+            fetch_values () |> Store.init;
             Ok
         | Quit -> Ok
       in
