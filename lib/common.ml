@@ -6,6 +6,7 @@ type request =
   | Set of string * string
   | Expand of string
   | List
+  | Reload
   | Quit
 
 type response =

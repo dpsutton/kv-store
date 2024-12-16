@@ -39,3 +39,7 @@ let set_value ?host ?(port = default_port) key value =
 let list_keys ?host ?(port = default_port) () =
   let socket = connect ?host ~port () in
   send_request socket List
+
+let reload ?host ?(port = default_port) () =
+  let socket = connect ?host ~port () in
+  send_request socket Reload

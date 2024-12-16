@@ -39,7 +39,7 @@ let parse_values f =
 let () =
   Arg.parse speclist (fun _ -> ()) usage;
 
-  let initial_values =
+  let initial_values () =
     match !init_file with Some f -> parse_values f | None -> []
   in
 

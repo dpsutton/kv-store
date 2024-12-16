@@ -90,7 +90,7 @@ let start_server ?(port = default_port) initial_values =
   Unix.listen socket 5;
   Printf.printf "Server listening on port %d\n%!" port;
 
-  Store.init initial_values;
+  initial_values () |> Store.init;
   while true do
     let client_sock, _ = Unix.accept socket in
     let ic = Unix.in_channel_of_descr client_sock in
@@ -110,6 +110,9 @@ let start_server ?(port = default_port) initial_values =
             Printf.printf "Stored: %s = %s\n%!" key value;
             Ok
         | List -> KeyList (Store.list ())
+        | Reload ->
+            initial_values () |> Store.init;
+            Ok
         | Quit -> Ok
       in
       output_value oc response;

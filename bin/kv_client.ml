@@ -1,6 +1,7 @@
 (* bin/client.ml - Client executable *)
 let usage =
-  "Usage: client [get <key> | set <key> <value> | expand <phrase> | list]"
+  "Usage: client [get <key> | set <key> <value> | expand <phrase> | list | \
+   reload]"
 
 let () =
   match Array.to_list Sys.argv with
@@ -25,6 +26,12 @@ let () =
   | [ _; "list" ] -> (
       match Kv.Client.list_keys () with
       | Ok keys -> print_endline keys
+      | Error msg ->
+          prerr_endline msg;
+          exit 1)
+  | [ _; "reload" ] -> (
+      match Kv.Client.reload () with
+      | Ok _ -> exit 0
       | Error msg ->
           prerr_endline msg;
           exit 1)
