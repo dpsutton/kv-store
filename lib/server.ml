@@ -88,6 +88,7 @@ end
 (* add a default arg here for an initial sequence of key value pairs
    from a file and add them with Hashtbl.replace_seq *)
 let start_server ?(port = default_port) fetch_values =
+  (* todo: remove all of this gross socket code to bin/server  *)
   let addr = Unix.inet_addr_loopback in
   let sockaddr = Unix.ADDR_INET (addr, port) in
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
