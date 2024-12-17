@@ -1,4 +1,59 @@
-Setting up
+### Usage
+
+```
+❯ kv-client
+Usage: client [get <key> | set <key> <value> | expand <phrase> | list | reload]
+```
+
+```
+❯ kv-client set foo "a value"
+
+# can include references
+❯ kv-client set bar "can expand {{foo}}"
+
+❯ kv-client get bar
+can expand a value
+```
+
+Can interpret
+
+```
+# tildes are easier to type and are the escape key here
+❯ kv-client expand "this uses a tilde for ~bar"
+this uses a tilde for can expand a value
+```
+
+
+list all keys
+
+```
+kv-client list
+```
+
+Seed with values
+
+`data.txt` file:
+
+```
+key=value
+
+# lines beginning with octothorpes are skipped
+more=values
+```
+
+```
+kv-server -file=data.txt
+```
+
+Go edit the file and then call
+
+```
+kv-client reload
+```
+
+to reload the file
+
+### Setting up
 
 ```
 ~/projects/ocaml
@@ -56,8 +111,8 @@ todo:
 - [ ] shorter commands to get? alias? `alias g="kv-client get"` and `echo "$(g db-arg)=$(g pg-prefix)clean $(g token-arg)=$(g ee)"`
 - [x] add a way to keep looking up token={{token-arg}}={{ee}} expands the token-arg and ee
 - [x] handle spaces, etc in seed data. `quick=this is stuff` should work.
-- [ ] ability to reload init file. editing text.data with other k/v's and then get it to reload without dumping the whole other k/v's set in memory
-- [ ] interpolate a string: `kv interpolate "PORT=~p config_file=~config ..." type interpolation
+- [x] ability to reload init file. editing text.data with other k/v's and then get it to reload without dumping the whole other k/v's set in memory
+- [x] interpolate a string: `kv interpolate "PORT=~p config_file=~config ..." type interpolation
 
 
 building:
