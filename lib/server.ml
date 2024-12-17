@@ -63,7 +63,7 @@ let inflate s fetch =
   inflate_with_seen StringSet.empty s
 
 let to_braces s =
-  let pattern = Str.regexp "~\\([a-zA-Z][a-zA-Z0-9_-]*\\)" in
+  let pattern = Str.regexp "~\\([a-zA-Z0-9_-]+\\)" in
   let matches = all_matches pattern s in
   replace_all s
     (List.map

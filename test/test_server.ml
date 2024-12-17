@@ -15,7 +15,9 @@ let test_expansion _ =
     (Kv.Server.inflate "expand {{not-found}}" fetch)
 
 let test_to_interpolation _ =
-  assert_equal (Kv.Server.to_braces "~expand ~vars") "{{expand}} {{vars}}"
+  assert_equal (Kv.Server.to_braces "~expand ~vars") "{{expand}} {{vars}}";
+  assert_equal "{{52-leading}} {{52-digit}}"
+    (Kv.Server.to_braces "~52-leading ~52-digit")
 
 let test_infinite_expansion _ =
   let fetch s =
