@@ -39,8 +39,8 @@ let rec remove p = function
 let inflate s fetch =
   let rec inflate_with_seen seen s =
     s
-    |> all_matches (Str.regexp "{{\\([^}]+\\)}}")
-    |> remove (flip StringSet.mem seen)
+    |> all_matches @@ Str.regexp "{{\\([^}]+\\)}}"
+    |> remove @@ flip StringSet.mem seen
     |> function
     | [] -> s
     | ids ->
